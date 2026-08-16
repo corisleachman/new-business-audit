@@ -1,36 +1,16 @@
-const questions=window.OPP_QUESTIONS||[];
-const params=new URLSearchParams(location.search);
-const clientKey=params.get('client')||'demo';
-const company=params.get('company')||'Your business';
-const contact=params.get('contact')||'';
-const accent=params.get('accent');
-if(accent && /^#[0-9a-f]{6}$/i.test(accent)) document.documentElement.style.setProperty('--client-accent',accent);
-const companyEls=document.querySelectorAll('[data-company]');companyEls.forEach(el=>el.textContent=company);
-const contactEl=document.querySelector('[data-contact]');if(contactEl&&contact)contactEl.textContent=contact;
-const storageKey=`opp-map:${clientKey}:answers`;
-const metaKey=`opp-map:${clientKey}:meta`;
-let index=0;
-let answers=JSON.parse(localStorage.getItem(storageKey)||'{}');
-const meta={clientKey,company,contact,startedAt:new Date().toISOString(),updatedAt:new Date().toISOString(),complete:false};
-localStorage.setItem(metaKey,JSON.stringify({...JSON.parse(localStorage.getItem(metaKey)||'{}'),...meta}));
+import { CLIENT_DIAGNOSTIC_ENDPOINT } from './supabase-config.js';
+
+const params=new URLSearchParams(location.search),token=params.get('token');
 const welcome=document.getElementById('welcome'),questionnaire=document.getElementById('questionnaire'),complete=document.getElementById('complete'),host=document.getElementById('questionHost');
-function show(el){[welcome,questionnaire,complete].forEach(x=>x.classList.remove('active'));el.classList.add('active')}
-function visibleQuestions(){return questions.filter(q=>!q.showIf||q.showIf(answers));}
-function render(){const qs=visibleQuestions();if(index>=qs.length)index=qs.length-1;const q=qs[index];if(!q)return;document.getElementById('chapterName').textContent=q.chapter;document.getElementById('progress').style.width=`${((index+1)/qs.length)*100}%`;document.getElementById('progressText').textContent=`${q.chapter} · ${Math.round(((index+1)/qs.length)*100)}%`;
-let body=`<div class="question-code">${q.id}</div><h2 class="question-title">${escapeHtml(q.title)}</h2><p class="question-help">${escapeHtml(q.help||'')}</p>`;
-const current=answers[q.id];
-if(q.type==='textarea') body+=`<textarea class="textarea" id="answerInput" placeholder="Type your answer here…">${escapeHtml(current||'')}</textarea>`;
-if(q.type==='text') body+=`<input class="text-input" id="answerInput" value="${escapeAttr(current||'')}" placeholder="Type your answer…">`;
-if(q.type==='number') body+=`<div class="number-wrap">${q.prefix?`<span>${q.prefix}</span>`:''}<input class="text-input number-input" type="number" min="0" id="answerInput" value="${escapeAttr(current??'')}" placeholder="0"></div>`;
-if(q.type==='options') body+=`<div class="option-grid">${q.options.map(o=>{const label=typeof o==='string'?o:o.label;return `<button class="option ${current===label?'selected':''}" data-value="${escapeAttr(label)}">${escapeHtml(label)}</button>`}).join('')}</div>`;
-if(q.type==='multi'){const selected=Array.isArray(current)?current:[];body+=`<div class="option-grid">${q.options.map(label=>`<button class="option multi-option ${selected.includes(label)?'selected':''}" data-value="${escapeAttr(label)}">${escapeHtml(label)}</button>`).join('')}</div><div class="question-help small">Choose up to three.</div>`}
-host.innerHTML=body;document.getElementById('backBtn').style.visibility=index===0?'hidden':'visible';document.getElementById('nextBtn').textContent=index===qs.length-1?'Finish':'Continue';
-document.querySelectorAll('.option:not(.multi-option)').forEach(btn=>btn.onclick=()=>{answers[q.id]=btn.dataset.value;save();render()});
-document.querySelectorAll('.multi-option').forEach(btn=>btn.onclick=()=>{const list=Array.isArray(answers[q.id])?[...answers[q.id]]:[];const value=btn.dataset.value;const pos=list.indexOf(value);if(pos>=0)list.splice(pos,1);else if(list.length<3)list.push(value);answers[q.id]=list;save();render()});
-}
-function capture(){const q=visibleQuestions()[index];const input=document.getElementById('answerInput');if(input){answers[q.id]=q.type==='number'?(input.value===''?'':Number(input.value)):input.value.trim();save()}}
-function save(){localStorage.setItem(storageKey,JSON.stringify(answers));const old=JSON.parse(localStorage.getItem(metaKey)||'{}');localStorage.setItem(metaKey,JSON.stringify({...old,updatedAt:new Date().toISOString(),answerCount:Object.keys(answers).length,totalQuestions:visibleQuestions().length}))}
-function completeDiagnostic(){capture();const old=JSON.parse(localStorage.getItem(metaKey)||'{}');localStorage.setItem(metaKey,JSON.stringify({...old,complete:true,completedAt:new Date().toISOString(),answerCount:Object.keys(answers).length,totalQuestions:visibleQuestions().length}));show(complete)}
-function escapeHtml(value){return String(value).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
-function escapeAttr(value){return escapeHtml(value)}
-document.getElementById('startBtn').onclick=()=>{show(questionnaire);render()};document.getElementById('backBtn').onclick=()=>{capture();if(index>0){index--;render()}};document.getElementById('nextBtn').onclick=()=>{capture();const qs=visibleQuestions();if(index<qs.length-1){index++;render()}else completeDiagnostic()};document.getElementById('restartBtn').onclick=()=>{index=0;show(welcome)};
+let index=0,questions=[],sections=[],answers={},client=null,remote=Boolean(token),response=null;
+const show=(el)=>{[welcome,questionnaire,complete].forEach(x=>x.classList.remove('active'));el.classList.add('active')};
+const esc=(v='')=>String(v).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+async function api(action,payload={}){const r=await fetch(CLIENT_DIAGNOSTIC_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,action,...payload})});const data=await r.json();if(!r.ok)throw new Error(data.error||'Something went wrong');return data}
+async function bootstrap(){if(!remote){questions=(window.OPP_QUESTIONS||[]).map((q,i)=>({id:q.id,code:q.id,prompt:q.title,helper_text:q.help,response_type:q.type==='textarea'?'long_text':q.type==='number'?'number':'single_select',sort_order:i+1,section_title:q.chapter,question_options:(q.options||[]).map((o,j)=>({label:typeof o==='string'?o:o.label,value:typeof o==='string'?o:o.label,sort_order:j+1}))}));client={name:'Your business'};return}
+const data=await api('bootstrap');client=data.client;sections=data.sections||[];questions=(data.questions||[]).map(q=>({...q,section_title:sections.find(s=>s.id===q.section_id)?.title||'Opportunity mapping',question_options:[...(q.question_options||[])].sort((a,b)=>a.sort_order-b.sort_order)}));response=data.response;(data.answers||[]).forEach(a=>answers[a.question_id]=a.answer?.value??a.answer);document.querySelectorAll('[data-company]').forEach(el=>el.textContent=client?.name||'Your business');if(data.brand?.primary_color&&/^#[0-9a-f]{6}$/i.test(data.brand.primary_color))document.documentElement.style.setProperty('--client-accent',data.brand.primary_color)}
+function render(){const q=questions[index];if(!q)return;document.getElementById('chapterName').textContent=q.section_title;document.getElementById('progress').style.width=`${((index+1)/questions.length)*100}%`;document.getElementById('progressText').textContent=`${q.section_title} · ${Math.round(((index+1)/questions.length)*100)}%`;const current=answers[q.id];let body=`<h2 class="question-title">${esc(q.prompt)}</h2><p class="question-help">${esc(q.helper_text||'')}</p>`;if(q.response_type==='long_text'||q.response_type==='short_text')body+=q.response_type==='long_text'?`<textarea class="textarea" id="answerInput" placeholder="Type your answer here…">${esc(current||'')}</textarea>`:`<input class="text-input" id="answerInput" value="${esc(current||'')}" placeholder="Type your answer…">`;else if(['number','currency','percentage'].includes(q.response_type))body+=`<input class="text-input number-input" type="number" min="0" id="answerInput" value="${current??''}" placeholder="0">`;else body+=`<div class="option-grid">${q.question_options.map(o=>`<button class="option ${current===o.value?'selected':''}" data-value="${esc(o.value)}">${esc(o.label)}</button>`).join('')}</div>`;host.innerHTML=body;document.getElementById('backBtn').style.visibility=index===0?'hidden':'visible';document.getElementById('nextBtn').textContent=index===questions.length-1?'Finish':'Continue';document.querySelectorAll('.option').forEach(btn=>btn.onclick=async()=>{answers[q.id]=btn.dataset.value;render();await save(q,btn.dataset.value)})}
+async function save(q,value){if(!remote){localStorage.setItem('opp-map-demo',JSON.stringify(answers));return}const sectionCode=sections.find(s=>s.id===q.section_id)?.code||null;await api('save_answer',{question_id:q.id,answer:{value},section_code:sectionCode})}
+async function capture(){const q=questions[index],input=document.getElementById('answerInput');if(!input)return;const value=['number','currency','percentage'].includes(q.response_type)?(input.value===''?'':Number(input.value)):input.value.trim();answers[q.id]=value;await save(q,value)}
+async function finish(){await capture();if(remote)await api('submit');show(complete)}
+document.getElementById('startBtn').onclick=()=>{show(questionnaire);render()};document.getElementById('backBtn').onclick=async()=>{await capture();if(index>0){index--;render()}};document.getElementById('nextBtn').onclick=async()=>{const btn=document.getElementById('nextBtn');btn.disabled=true;try{await capture();if(index<questions.length-1){index++;render()}else await finish()}catch(e){alert(e.message)}finally{btn.disabled=false}};document.getElementById('restartBtn').onclick=()=>{index=0;show(welcome)};
+bootstrap().catch(e=>{document.getElementById('welcome').innerHTML=`<div class="eyebrow">LINK PROBLEM</div><h1>This diagnostic link can’t be opened.</h1><p class="lede">${esc(e.message)}</p>`});
