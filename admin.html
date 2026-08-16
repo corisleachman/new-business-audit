@@ -10,20 +10,26 @@
 <main class="shell">
 <header class="topbar"><a class="brand" href="./">CORIS <span>LEACHMAN</span></a><a class="admin-link" href="./">Client experience</a></header>
 <section class="admin-shell">
-<div class="eyebrow">CONSULTANT WORKSPACE</div>
-<h1 style="font-size:52px">Opportunity Mapping</h1>
+<div class="admin-heading"><div><div class="eyebrow">CONSULTANT WORKSPACE</div><h1>Opportunity Mapping</h1><p>Set up a client diagnostic, review responses, and turn the strongest signals into consultant-approved findings.</p></div><button class="primary" id="showCreate">Create client diagnostic</button></div>
+<div id="createPanel" class="create-panel">
+  <div class="field"><label>Company</label><input id="newCompany" class="admin-input" placeholder="Agency or business name"></div>
+  <div class="field"><label>Primary contact</label><input id="newContact" class="admin-input" placeholder="Name"></div>
+  <div class="field"><label>Brand colour</label><input id="newAccent" class="color-input" type="color" value="#17263b"></div>
+  <button class="primary" id="createClient">Create</button>
+</div>
 <div class="admin-grid">
-<div class="panel">
-<h2>BEFORE:WORK</h2>
-<div class="metric-row"><div class="metric"><strong>82%</strong><span>Diagnostic complete</span></div><div class="metric"><strong>4</strong><span>Priority findings</span></div><div class="metric"><strong>7</strong><span>Evidence points</span></div></div>
-<div style="margin-top:26px">
-<div class="finding"><span class="status">Critical</span><h3>Pipeline isn't operating as a managed commercial system</h3><p>Opportunities are visible in several places, but stages, follow-up and ownership are inconsistent. Increasing prospect volume now is likely to amplify leakage.</p><div class="finding-actions"><button class="primary tiny">Accept</button><button class="secondary tiny">Edit</button><button class="secondary tiny">Dismiss</button></div></div>
-<div class="finding"><span class="status">Opportunity</span><h3>Strong proposition, weak nurture</h3><p>The business has credible market pull, but warm prospects rely on manual chasing and are not consistently re-engaged.</p><div class="finding-actions"><button class="primary tiny">Accept</button><button class="secondary tiny">Edit</button><button class="secondary tiny">Dismiss</button></div></div>
-<div class="finding"><span class="status">Needs attention</span><h3>Growth target needs funnel validation</h3><p>The net-new ambition has not yet been translated into the number of wins, proposals and qualified conversations required.</p><div class="finding-actions"><button class="primary tiny">Accept</button><button class="secondary tiny">Edit</button><button class="secondary tiny">Dismiss</button></div></div>
-</div></div>
-<div class="panel"><h2>Active engagements</h2><div class="client-list"><div class="client"><div><strong>BEFORE:WORK</strong><br><small>James · Review ready</small></div><span class="status">82%</span></div><div class="client"><div><strong>Pattrn Studios</strong><br><small>Diagnostic sent</small></div><span class="status">34%</span></div><div class="client"><div><strong>The Social Element</strong><br><small>Workshop mode</small></div><span class="status">Draft</span></div></div><button class="primary" style="margin-top:20px;width:100%">Create client diagnostic</button></div>
+<div class="panel main-panel">
+<div class="panel-head"><div><div class="eyebrow compact">CURRENT REVIEW</div><h2 id="selectedClient">Client</h2></div><a class="secondary button-link tiny" id="openClient" target="_blank">Open client view</a></div>
+<div class="metric-row"><div class="metric"><strong id="metricComplete">0%</strong><span>Diagnostic complete</span></div><div class="metric"><strong id="metricSignals">0</strong><span>Scored signals</span></div><div class="metric"><strong id="metricEvidence">0</strong><span>Evidence points</span></div></div>
+<div class="share-row"><input id="clientLink" class="share-input" readonly><button class="secondary tiny" id="copyLink">Copy link</button></div>
+<div id="findings" class="findings-wrap"></div>
+<button class="secondary" id="toggleAnswers">View raw responses</button>
+<div id="answersPanel" class="answers-panel"><div id="answerDump"></div></div>
+</div>
+<div class="panel side-panel"><h2>Active engagements</h2><div class="client-list" id="clientList"></div><p class="admin-note">This static MVP stores data in your browser. Supabase will replace local storage once the diagnostic and review workflow are locked.</p></div>
 </div>
 </section>
 </main>
+<script src="questions.js"></script><script src="admin.js"></script>
 </body>
 </html>
