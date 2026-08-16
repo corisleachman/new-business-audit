@@ -1,21 +1,36 @@
-const questions=[
-{chapter:'Your ambition',title:'What would make the next 12 months feel commercially successful?',help:'Think beyond a topline revenue number. Client mix, margin, independence, reputation and pace all count.',type:'textarea'},
-{chapter:'Your ambition',title:'How much of your growth needs to come from new clients?',help:'A rough split is enough.',type:'options',options:['Mostly existing clients','About 50/50','Mostly new clients','I’m not sure yet']},
-{chapter:'What you sell',title:'How clearly defined are your current offers?',help:'Choose the answer that feels most accurate today.',type:'options',options:['Very clearly defined','Mostly clear','Somewhat vague','Highly bespoke / open-ended']},
-{chapter:'What you sell',title:'Why do clients choose you rather than another agency or supplier?',help:'What do you believe genuinely tips the decision in your favour?',type:'textarea'},
-{chapter:'Who buys it',title:'What types of organisations are your best clients today?',help:'Describe the patterns you see across your strongest relationships.',type:'textarea'},
-{chapter:'Who buys it',title:'When is a prospect most likely to need you?',help:'Think about triggers such as launches, rebrands, leadership changes or transformation programmes.',type:'textarea'},
-{chapter:'How opportunities happen',title:'Where do new-business opportunities live today?',help:'Choose the closest answer.',type:'options',options:['A CRM','A spreadsheet / Notion','Mostly inboxes and people’s heads','Honestly, everywhere']},
-{chapter:'How opportunities happen',title:'How consistently are active opportunities followed up?',help:'Be candid. This is about what happens in practice.',type:'options',options:['Always','Usually','Sometimes','Rarely / no defined process']},
-{chapter:'The growth machine',title:'How well is your CRM or pipeline system actually used?',help:'If you don’t have one, choose the last option.',type:'options',options:['Very consistently','Reasonably well','Patchily','We don’t really have one']},
-{chapter:'The growth machine',title:'Which part of your process feels unnecessarily manual?',help:'Anything repetitive, hard to track, or dependent on someone remembering.',type:'textarea'},
-{chapter:'Ownership',title:'What most often gets in the way of consistent new-business activity?',help:'Pick the biggest blocker.',type:'options',options:['Client delivery takes over','No clear owner or rhythm','We’re unsure who to target','We’re unsure what to say']},
-{chapter:'Priorities',title:'If we fixed one thing in the next 90 days, what would you want it to be?',help:'The answer can be strategic, operational or behavioural.',type:'textarea'}
-];
-let index=0;const answers=JSON.parse(localStorage.getItem('opp-map-answers')||'{}');
+const questions=window.OPP_QUESTIONS||[];
+const params=new URLSearchParams(location.search);
+const clientKey=params.get('client')||'demo';
+const company=params.get('company')||'Your business';
+const contact=params.get('contact')||'';
+const accent=params.get('accent');
+if(accent && /^#[0-9a-f]{6}$/i.test(accent)) document.documentElement.style.setProperty('--client-accent',accent);
+const companyEls=document.querySelectorAll('[data-company]');companyEls.forEach(el=>el.textContent=company);
+const contactEl=document.querySelector('[data-contact]');if(contactEl&&contact)contactEl.textContent=contact;
+const storageKey=`opp-map:${clientKey}:answers`;
+const metaKey=`opp-map:${clientKey}:meta`;
+let index=0;
+let answers=JSON.parse(localStorage.getItem(storageKey)||'{}');
+const meta={clientKey,company,contact,startedAt:new Date().toISOString(),updatedAt:new Date().toISOString(),complete:false};
+localStorage.setItem(metaKey,JSON.stringify({...JSON.parse(localStorage.getItem(metaKey)||'{}'),...meta}));
 const welcome=document.getElementById('welcome'),questionnaire=document.getElementById('questionnaire'),complete=document.getElementById('complete'),host=document.getElementById('questionHost');
 function show(el){[welcome,questionnaire,complete].forEach(x=>x.classList.remove('active'));el.classList.add('active')}
-function render(){const q=questions[index];document.getElementById('chapterName').textContent=q.chapter;document.getElementById('progress').style.width=`${((index+1)/questions.length)*100}%`;let body=`<h2 class="question-title">${q.title}</h2><p class="question-help">${q.help||''}</p>`;if(q.type==='textarea'){body+=`<textarea class="textarea" id="answerInput" placeholder="Type your answer here…">${answers[index]||''}</textarea>`}else{body+=`<div class="option-grid">${q.options.map(o=>`<button class="option ${answers[index]===o?'selected':''}" data-value="${o.replace(/"/g,'&quot;')}">${o}</button>`).join('')}</div>`}host.innerHTML=body;document.getElementById('backBtn').style.visibility=index===0?'hidden':'visible';document.querySelectorAll('.option').forEach(btn=>btn.onclick=()=>{answers[index]=btn.dataset.value;save();render()});}
-function save(){localStorage.setItem('opp-map-answers',JSON.stringify(answers))}
-document.getElementById('startBtn').onclick=()=>{show(questionnaire);render()};document.getElementById('backBtn').onclick=()=>{capture();if(index>0){index--;render()}};document.getElementById('nextBtn').onclick=()=>{capture();if(index<questions.length-1){index++;render()}else{localStorage.setItem('opp-map-complete','true');show(complete)}};document.getElementById('restartBtn').onclick=()=>{index=0;show(welcome)};
-function capture(){const input=document.getElementById('answerInput');if(input){answers[index]=input.value.trim();save()}}
+function visibleQuestions(){return questions.filter(q=>!q.showIf||q.showIf(answers));}
+function render(){const qs=visibleQuestions();if(index>=qs.length)index=qs.length-1;const q=qs[index];if(!q)return;document.getElementById('chapterName').textContent=q.chapter;document.getElementById('progress').style.width=`${((index+1)/qs.length)*100}%`;document.getElementById('progressText').textContent=`${q.chapter} · ${Math.round(((index+1)/qs.length)*100)}%`;
+let body=`<div class="question-code">${q.id}</div><h2 class="question-title">${escapeHtml(q.title)}</h2><p class="question-help">${escapeHtml(q.help||'')}</p>`;
+const current=answers[q.id];
+if(q.type==='textarea') body+=`<textarea class="textarea" id="answerInput" placeholder="Type your answer here…">${escapeHtml(current||'')}</textarea>`;
+if(q.type==='text') body+=`<input class="text-input" id="answerInput" value="${escapeAttr(current||'')}" placeholder="Type your answer…">`;
+if(q.type==='number') body+=`<div class="number-wrap">${q.prefix?`<span>${q.prefix}</span>`:''}<input class="text-input number-input" type="number" min="0" id="answerInput" value="${escapeAttr(current??'')}" placeholder="0"></div>`;
+if(q.type==='options') body+=`<div class="option-grid">${q.options.map(o=>{const label=typeof o==='string'?o:o.label;return `<button class="option ${current===label?'selected':''}" data-value="${escapeAttr(label)}">${escapeHtml(label)}</button>`}).join('')}</div>`;
+if(q.type==='multi'){const selected=Array.isArray(current)?current:[];body+=`<div class="option-grid">${q.options.map(label=>`<button class="option multi-option ${selected.includes(label)?'selected':''}" data-value="${escapeAttr(label)}">${escapeHtml(label)}</button>`).join('')}</div><div class="question-help small">Choose up to three.</div>`}
+host.innerHTML=body;document.getElementById('backBtn').style.visibility=index===0?'hidden':'visible';document.getElementById('nextBtn').textContent=index===qs.length-1?'Finish':'Continue';
+document.querySelectorAll('.option:not(.multi-option)').forEach(btn=>btn.onclick=()=>{answers[q.id]=btn.dataset.value;save();render()});
+document.querySelectorAll('.multi-option').forEach(btn=>btn.onclick=()=>{const list=Array.isArray(answers[q.id])?[...answers[q.id]]:[];const value=btn.dataset.value;const pos=list.indexOf(value);if(pos>=0)list.splice(pos,1);else if(list.length<3)list.push(value);answers[q.id]=list;save();render()});
+}
+function capture(){const q=visibleQuestions()[index];const input=document.getElementById('answerInput');if(input){answers[q.id]=q.type==='number'?(input.value===''?'':Number(input.value)):input.value.trim();save()}}
+function save(){localStorage.setItem(storageKey,JSON.stringify(answers));const old=JSON.parse(localStorage.getItem(metaKey)||'{}');localStorage.setItem(metaKey,JSON.stringify({...old,updatedAt:new Date().toISOString(),answerCount:Object.keys(answers).length,totalQuestions:visibleQuestions().length}))}
+function completeDiagnostic(){capture();const old=JSON.parse(localStorage.getItem(metaKey)||'{}');localStorage.setItem(metaKey,JSON.stringify({...old,complete:true,completedAt:new Date().toISOString(),answerCount:Object.keys(answers).length,totalQuestions:visibleQuestions().length}));show(complete)}
+function escapeHtml(value){return String(value).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
+function escapeAttr(value){return escapeHtml(value)}
+document.getElementById('startBtn').onclick=()=>{show(questionnaire);render()};document.getElementById('backBtn').onclick=()=>{capture();if(index>0){index--;render()}};document.getElementById('nextBtn').onclick=()=>{capture();const qs=visibleQuestions();if(index<qs.length-1){index++;render()}else completeDiagnostic()};document.getElementById('restartBtn').onclick=()=>{index=0;show(welcome)};
