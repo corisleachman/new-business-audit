@@ -13,24 +13,26 @@
   <main class="shell">
     <header class="topbar">
       <a class="brand" href="./">CORIS <span>LEACHMAN</span></a>
-      <a class="admin-link" href="admin.html">Consultant view</a>
+      <div class="client-chip"><span>Prepared for</span><strong data-company>Your business</strong></div>
     </header>
 
     <section id="welcome" class="screen active">
       <div class="eyebrow">GROWTH OPPORTUNITY MAPPING</div>
-      <h1>Let’s work out what’s really getting in the way of growth.</h1>
+      <h1><span data-company>Your business</span>, let’s work out what’s really getting in the way of growth.</h1>
       <p class="lede">This isn’t a generic audit. Your answers will help me understand how the commercial engine works today, what’s already strong, and where the highest-value opportunities sit.</p>
       <div class="meta-row">
-        <div><strong>15–20 min</strong><span>Typical completion time</span></div>
+        <div><strong>20–30 min</strong><span>Typical completion time</span></div>
         <div><strong>Private</strong><span>Reviewed personally by Coris</span></div>
       </div>
       <button class="primary" id="startBtn">Start opportunity mapping</button>
     </section>
 
     <section id="questionnaire" class="screen">
+      <div class="progress-meta" id="progressText">Getting started</div>
       <div class="progress-wrap"><div id="progress" class="progress"></div></div>
       <div class="chapter" id="chapterName">Your ambition</div>
       <div id="questionHost"></div>
+      <div class="autosave-note">Saved automatically on this device</div>
       <div class="controls">
         <button class="secondary" id="backBtn">Back</button>
         <button class="primary" id="nextBtn">Continue</button>
@@ -40,15 +42,16 @@
     <section id="complete" class="screen">
       <div class="completion-mark">✓</div>
       <div class="eyebrow">COMPLETE</div>
-      <h1>Thanks. I’ve got what I need to start the review.</h1>
+      <h1>Thanks<span data-contact></span>. I’ve got what I need to start the review.</h1>
       <p class="lede">I’ll use your answers to build a first-pass Opportunity Map, then layer my own judgement and recommendations over the top before anything comes back to you.</p>
       <div class="summary-card">
         <span>Next step</span>
         <strong>Consultant review → Opportunity Map</strong>
       </div>
-      <button class="secondary" id="restartBtn">View the experience again</button>
+      <button class="secondary" id="restartBtn">Review your answers</button>
     </section>
   </main>
+  <script src="questions.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
