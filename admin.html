@@ -8,28 +8,41 @@
 </head>
 <body>
 <main class="shell">
-<header class="topbar"><a class="brand" href="./">CORIS <span>LEACHMAN</span></a><a class="admin-link" href="./">Client experience</a></header>
-<section class="admin-shell">
-<div class="admin-heading"><div><div class="eyebrow">CONSULTANT WORKSPACE</div><h1>Opportunity Mapping</h1><p>Set up a client diagnostic, review responses, and turn the strongest signals into consultant-approved findings.</p></div><button class="primary" id="showCreate">Create client diagnostic</button></div>
-<div id="createPanel" class="create-panel">
-  <div class="field"><label>Company</label><input id="newCompany" class="admin-input" placeholder="Agency or business name"></div>
-  <div class="field"><label>Primary contact</label><input id="newContact" class="admin-input" placeholder="Name"></div>
-  <div class="field"><label>Brand colour</label><input id="newAccent" class="color-input" type="color" value="#17263b"></div>
-  <button class="primary" id="createClient">Create</button>
-</div>
-<div class="admin-grid">
-<div class="panel main-panel">
-<div class="panel-head"><div><div class="eyebrow compact">CURRENT REVIEW</div><h2 id="selectedClient">Client</h2></div><a class="secondary button-link tiny" id="openClient" target="_blank">Open client view</a></div>
-<div class="metric-row"><div class="metric"><strong id="metricComplete">0%</strong><span>Diagnostic complete</span></div><div class="metric"><strong id="metricSignals">0</strong><span>Scored signals</span></div><div class="metric"><strong id="metricEvidence">0</strong><span>Evidence points</span></div></div>
-<div class="share-row"><input id="clientLink" class="share-input" readonly><button class="secondary tiny" id="copyLink">Copy link</button></div>
-<div id="findings" class="findings-wrap"></div>
-<button class="secondary" id="toggleAnswers">View raw responses</button>
-<div id="answersPanel" class="answers-panel"><div id="answerDump"></div></div>
-</div>
-<div class="panel side-panel"><h2>Active engagements</h2><div class="client-list" id="clientList"></div><p class="admin-note">This static MVP stores data in your browser. Supabase will replace local storage once the diagnostic and review workflow are locked.</p></div>
-</div>
+<header class="topbar"><a class="brand" href="./">CORIS <span>LEACHMAN</span></a><div class="top-actions"><span id="signedInAs" class="admin-link"></span><button id="signOutBtn" class="secondary tiny" hidden>Sign out</button><a class="admin-link" href="./">Client experience</a></div></header>
+
+<section id="authPanel" class="admin-shell auth-shell">
+  <div class="panel auth-card">
+    <div class="eyebrow">CONSULTANT ACCESS</div>
+    <h1>Sign in to your workspace.</h1>
+    <p class="lede small-lede">Your client records and responses now live in Supabase rather than this browser.</p>
+    <div class="auth-fields">
+      <input id="authEmail" class="admin-input" type="email" placeholder="Email address" autocomplete="email">
+      <input id="authPassword" class="admin-input" type="password" placeholder="Password" autocomplete="current-password">
+    </div>
+    <div class="finding-actions"><button class="primary" id="signInBtn">Sign in</button><button class="secondary" id="signUpBtn">Create account</button></div>
+    <p id="authMessage" class="admin-note"></p>
+  </div>
+</section>
+
+<section id="workspace" class="admin-shell" hidden>
+  <div class="admin-heading"><div><div class="eyebrow">CONSULTANT WORKSPACE</div><h1>Opportunity Mapping</h1><p>Create a tailored diagnostic link, track responses and prepare each client for review.</p></div></div>
+  <div class="admin-grid">
+    <div class="panel main-panel">
+      <div class="eyebrow compact">NEW ENGAGEMENT</div><h2>Create client diagnostic</h2>
+      <form id="createClientForm" class="create-form">
+        <div class="field"><label>Company</label><input id="clientName" class="admin-input" placeholder="Agency or business name" required></div>
+        <div class="field"><label>Primary contact</label><input id="contactName" class="admin-input" placeholder="Name" required></div>
+        <div class="field"><label>Contact email</label><input id="contactEmail" class="admin-input" type="email" placeholder="name@company.com"></div>
+        <div class="field"><label>Website</label><input id="clientWebsite" class="admin-input" type="url" placeholder="https://..."></div>
+        <div class="field"><label>Primary brand colour</label><input id="primaryColor" class="color-input" type="color" value="#17263b"></div>
+        <button class="primary" type="submit">Create client diagnostic</button>
+      </form>
+      <div id="generatedLink" class="summary-card generated-link" hidden></div>
+    </div>
+    <div class="panel side-panel"><h2>Active engagements</h2><div class="client-list" id="clientList"></div><p class="admin-note">Responses are now persisted in the Clients Supabase project.</p></div>
+  </div>
 </section>
 </main>
-<script src="questions.js"></script><script src="admin.js"></script>
+<script type="module" src="admin.js"></script>
 </body>
 </html>
